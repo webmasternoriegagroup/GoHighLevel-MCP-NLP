@@ -385,7 +385,55 @@ class GHLMCPHttpServer {
     // Handle both GET and POST for SSE (MCP protocol requirements)
     this.app.get('/sse', handleSSE);
     this.app.post('/sse', handleSSE);
+    this.app.post("/chat", async (req: any, res: any) => {
+          try {
+            const { message } = req.body;
+            if (!message) {
+              res.status(400).json({ error: "El campo 'message' es requerido" });
+              return;
+            }
+            const { handleChat } = await import("./chat.js");
+            const result = await handleChat(message);
+            res.json({ response: result });
+          } catch (error: any) {
+            res.status(500).json({ error: error.message });
+          }
+        });
+this.app.post("/chat", async (req: any, res: any) => {
+      try {
+        const { message } = req.body;
+        if (!message) {
+          res.status(400).json({ error: "El campo 'message' es requerido" });
+          return;
+        }
+        const { handleChat } = await import("./chat.js");
+        const result = await handleChat(message);
+        res.json({ response: result });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
 
+    this.app.post("/tools/execute", async (req: any, res: any) => {
+      try {
+        const { name, arguments: args } = req.body;
+        let result: any;
+        if (this.isContactTool(name)) {
+          result = await this.contactTools.executeTool(name, args || {});
+        } else if (this.isConversationTool(name)) {
+          result = await this.conversationTools.executeTool(name, args || {});
+        } else if (this.isCalendarTool(name)) {
+          result = await this.calendarTools.executeTool(name, args || {});
+        } else if (this.isOpportunityTool(name)) {
+          result = await this.opportunityTools.executeTool(name, args || {});
+        } else {
+          result = { error: `Herramienta no encontrada: ${name}` };
+        }
+        res.json(result);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });     
     // Root endpoint with server info
     this.app.get('/', (req, res) => {
       res.json({
